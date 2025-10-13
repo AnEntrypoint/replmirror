@@ -1,0 +1,46 @@
+{
+  "name": "@anentrypoint/browser-repl",
+  "version": "1.0.0",
+  "description": "WebSocket-based browser REPL with CLI and MCP support",
+  "main": "src/server/index.js",
+  "bin": {
+    "browser-repl": "src/cli/index.js"
+  },
+  "type": "module",
+  "scripts": {
+    "start": "node src/cli/index.js server",
+    "server": "node src/cli/index.js server",
+    "mcp": "node src/cli/index.js mcp",
+    "connect": "node src/cli/index.js connect",
+    "test": "node test/test.js",
+    "demo": "node demo.js"
+  },
+  "dependencies": {
+    "ws": "^8.14.2",
+    "commander": "^11.1.0",
+    "crypto": "^1.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.0",
+    "playwright": "^1.40.0"
+  },
+  "keywords": ["websocket", "repl", "browser", "cli", "mcp", "automation"],
+  "author": "AnEntrypoint",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/anentrypoint/browser-repl.git"
+  },
+  "homepage": "https://github.com/anentrypoint/browser-repl#readme",
+  "bugs": {
+    "url": "https://github.com/anentrypoint/browser-repl/issues"
+  },
+  "files": [
+    "src/",
+    "README.md",
+    "MCP-SETUP.md"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
