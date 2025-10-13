@@ -1,6 +1,6 @@
 {
   "name": "browser-repl-websocket",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "WebSocket-based browser REPL with CLI and MCP support",
   "main": "src/server/index.js",
   "bin": {
@@ -24,7 +24,14 @@
     "@types/node": "^20.8.0",
     "playwright": "^1.40.0"
   },
-  "keywords": ["websocket", "repl", "browser", "cli", "mcp", "automation"],
+  "keywords": [
+    "websocket",
+    "repl",
+    "browser",
+    "cli",
+    "mcp",
+    "automation"
+  ],
   "author": "AnEntrypoint",
   "license": "MIT",
   "repository": {
