@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import { Command } from 'commander';
 import { WebSocketREPLClient } from '../core/client.js';
 import { WebSocketREPLServer } from '../core/websocket.js';
@@ -9,11 +8,7 @@ const program = new Command();
 
 program
   .name('browser-repl')
-  .description('WebSocket-based browser REPL with CLI and MCP support')
-  .option('--host <host>', 'WebSocket server host', 'localhost')
-  .option('--port <port>', 'WebSocket server port', '3000')
-  .option('--session <sessionId>', 'Session ID for connection')
-  .option('--code <code>', 'Execute single command and exit');
+  .description('WebSocket-based browser REPL with CLI and MCP support');
 
 program
   .command('server')
@@ -204,11 +199,5 @@ program
     }
   });
 
-// Default action (backward compatibility)
-program.action(async (options) => {
-  console.log('Use "browser-repl server" to start server');
-  console.log('Use "browser-repl connect" to connect to server');
-  console.log('Use "browser-repl mcp" to start MCP server');
-});
 
 program.parse();

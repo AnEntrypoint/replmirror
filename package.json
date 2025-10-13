@@ -4,7 +4,7 @@
   "description": "WebSocket-based browser REPL with CLI and MCP support",
   "main": "src/server/index.js",
   "bin": {
-    "browser-repl": "src/cli/index.js"
+    "browser-repl": "bin/browser-repl"
   },
   "type": "module",
   "scripts": {
@@ -37,6 +37,7 @@
   },
   "files": [
     "src/",
+    "bin/",
     "README.md",
     "MCP-SETUP.md"
   ],
