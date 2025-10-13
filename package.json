@@ -1,5 +1,5 @@
 {
-  "name": "@anentrypoint/browser-repl",
+  "name": "browser-repl-websocket",
   "version": "1.0.0",
   "description": "WebSocket-based browser REPL with CLI and MCP support",
   "main": "src/server/index.js",
