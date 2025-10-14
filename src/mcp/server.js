@@ -32,9 +32,22 @@ export class MCPBrowserREPLServer {
       cleanHost = cleanHost.substring(8);
     }
 
-    const wsProtocol = this.port === 443 ? 'wss' : 'ws';
+    // Handle case where host already includes port (e.g., localhost:8080)
+    let portToUse = this.port;
+    if (cleanHost.includes(':')) {
+      const [hostOnly, hostPort] = cleanHost.split(':');
+      // Only use host's port if it's different from our port
+      if (hostPort && hostPort !== this.port.toString()) {
+        cleanHost = hostOnly;
+        portToUse = parseInt(hostPort);
+      } else {
+        cleanHost = hostOnly;
+      }
+    }
+
+    const wsProtocol = portToUse === 443 ? 'wss' : 'ws';
     return `(function() {
-  const ws = new WebSocket('${wsProtocol}://${cleanHost}:${this.port}/repl');
+  const ws = new WebSocket('${wsProtocol}://${cleanHost}:${portToUse}/repl');
   const sessionId = '${this.sessionId}';
 
   ws.onopen = function() {
