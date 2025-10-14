@@ -133,7 +133,17 @@ export class MCPBrowserREPLServer {
   }
 
   async executeJavaScript(code) {
-    await this.ensureConnected();
+    // Try to connect immediately, but don't wait if it fails
+    const connectionResult = await this.tryConnection();
+
+    if (!connectionResult.connected) {
+      return {
+        result: connectionResult.browserCode,
+        success: false,
+        needsBrowserConnection: true,
+        message: 'Browser connection required - paste the code above into browser console'
+      };
+    }
 
     return new Promise((resolve, reject) => {
       const originalHandleMessage = this.client.handleMessage.bind(this.client);
@@ -159,8 +169,43 @@ export class MCPBrowserREPLServer {
 
       setTimeout(() => {
         reject(new Error('Execution timeout'));
-      }, 10000);
+      }, 5000); // Reduced timeout
     });
+  }
+
+  async tryConnection() {
+    if (this.connected) {
+      return { connected: true };
+    }
+
+    const browserCode = this.generateBrowserCode();
+
+    console.log('\n🌐 BROWSER CONNECTION REQUIRED');
+    console.log('Copy and paste this code into your browser console:');
+    console.log('─'.repeat(50));
+    console.log(browserCode);
+    console.log('─'.repeat(50));
+    console.log('Waiting for browser connection...\n');
+
+    // Try to connect with a very short timeout
+    try {
+      const connectPromise = this.client.connect();
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Connection timeout')), 1000)
+      );
+
+      await Promise.race([connectPromise, timeoutPromise]);
+      this.connected = true;
+      console.log('✅ Browser connected successfully!');
+      return { connected: true };
+    } catch (error) {
+      console.log('⏳ Browser not yet connected - connection code provided above');
+      return {
+        connected: false,
+        browserCode: browserCode,
+        error: error.message
+      };
+    }
   }
 
   async listTools() {

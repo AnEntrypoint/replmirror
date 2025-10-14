@@ -241,20 +241,54 @@ class StdioServerTransport {
     try {
       const result = await replServer.callTool(toolName, arguments_);
 
-      // Format result according to MCP specification
-      return {
-        jsonrpc: '2.0',
-        id: message.id,
-        result: {
-          content: [
-            {
-              type: 'text',
-              text: typeof result === 'string' ? result : JSON.stringify(result)
-            }
-          ],
-          isError: false
-        }
-      };
+      // Handle different result types
+      if (result.needsBrowserConnection) {
+        return {
+          jsonrpc: '2.0',
+          id: message.id,
+          result: {
+            content: [
+              {
+                type: 'text',
+                text: result.message
+              },
+              {
+                type: 'text',
+                text: '\nBrowser Connection Code:\n' + result.result.split('\n').slice(3, -3).join('\n')
+              }
+            ],
+            isError: false
+          }
+        };
+      } else if (result.success) {
+        return {
+          jsonrpc: '2.0',
+          id: message.id,
+          result: {
+            content: [
+              {
+                type: 'text',
+                text: typeof result.result === 'string' ? result.result : JSON.stringify(result.result)
+              }
+            ],
+            isError: false
+          }
+        };
+      } else {
+        return {
+          jsonrpc: '2.0',
+          id: message.id,
+          result: {
+            content: [
+              {
+                type: 'text',
+                text: `Error: ${result.error || 'Unknown error'}`
+              }
+            ],
+            isError: true
+          }
+        };
+      }
     } catch (error) {
       return {
         jsonrpc: '2.0',
