@@ -86,16 +86,47 @@ export class WebSocketREPLServer {
           const message = JSON.parse(data.toString());
 
           if (message.type === 'register') {
+            const regSessionId = message.sessionId || sessionId;
+            const role = message.role;
+
+            // Handle session switching for browsers (only when another browser connects)
+            if (role === 'browser') {
+              // Disconnect any existing browser with this session ID
+              for (const [existingWs, existingConn] of this.connections) {
+                if (existingConn.role === 'browser' && existingConn.sessionId === regSessionId && existingWs !== ws) {
+                  console.log(`🔄 Switching browser session: disconnecting previous browser for session ${regSessionId}`);
+                  existingWs.close();
+                  this.connections.delete(existingWs);
+                }
+              }
+            }
+
+            // Handle multiple CLI/MCP servers per session (keep latest, disconnect others)
+            if (role === 'cli' || role === 'mcp') {
+              for (const [existingWs, existingConn] of this.connections) {
+                if ((existingConn.role === 'cli' || existingConn.role === 'mcp') &&
+                    existingConn.sessionId === regSessionId && existingWs !== ws) {
+                  console.log(`🔄 Switching CLI/MCP: disconnecting previous CLI/MCP for session ${regSessionId}`);
+                  existingWs.close();
+                  this.connections.delete(existingWs);
+                }
+              }
+            }
+
             this.connections.set(ws, {
-              sessionId: message.sessionId || sessionId,
-              role: message.role,
-              connected: new Date()
+              sessionId: regSessionId,
+              role: role,
+              connected: new Date(),
+              timestamp: message.timestamp
             });
 
-            if (message.role === 'browser') {
-              console.log(`Browser connected: ${message.sessionId || sessionId}`);
-            } else if (message.role === 'cli') {
-              console.log(`CLI connected: ${message.sessionId || sessionId}`);
+            if (role === 'browser') {
+              console.log(`✅ Browser connected: ${regSessionId}`);
+              if (message.timestamp) {
+                console.log(`   Connection time: ${new Date(message.timestamp).toISOString()}`);
+              }
+            } else if (role === 'cli') {
+              console.log(`CLI connected: ${regSessionId}`);
             }
           } else if (message.type === 'execute') {
             this.handleExecute(ws, message);

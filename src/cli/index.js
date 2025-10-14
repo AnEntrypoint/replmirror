@@ -3,6 +3,8 @@ import { WebSocketREPLClient } from '../core/client.js';
 import { WebSocketREPLServer } from '../core/websocket.js';
 import { MCPBrowserREPLServer } from '../mcp/server.js';
 import { createInterface } from 'readline';
+import { randomBytes } from 'crypto';
+import { saveSession, loadSession, getSessionCode } from '../utils/session.js';
 
 const program = new Command();
 
@@ -39,98 +41,100 @@ program
 program
   .command('mcp')
   .description('Start MCP server for Claude integration')
-  .option('--host <host>', 'WebSocket server host', 'localhost')
-  .option('--port <port>', 'WebSocket server port', '3000')
-  .action(async (options) => {
-    const mcpServer = new MCPBrowserREPLServer({
-      host: options.host,
-      port: parseInt(options.port)
-    });
+  .action(async () => {
+    // Load session from hidden file automatically
+    const session = loadSession();
 
-    const StdioServerTransport = class {
-      constructor() {
-        this.stdin = process.stdin;
-        this.stdout = process.stdout;
-      }
+    if (!session) {
+      console.error('❌ No session found. Run "npx browser-repl-websocket code" first to generate a session.');
+      process.exit(1);
+    }
 
-      async start() {
-        this.stdin.setEncoding('utf8');
+    console.log(`🔗 Using session from ~/.replmirror-session`);
+    console.log(`📋 Session ID: ${session.sessionId}`);
+    console.log(`🌐 Server: ${session.host}:${session.port}`);
 
-        this.stdin.on('data', async (data) => {
-          try {
-            const message = JSON.parse(data.toString());
-            const response = await this.handleMessage(message);
-            this.stdout.write(JSON.stringify(response) + '\n');
-          } catch (error) {
-            const errorResponse = {
-              jsonrpc: '2.0',
-              id: message.id || null,
-              error: {
-                code: -32603,
-                message: error.message
-              }
-            };
-            this.stdout.write(JSON.stringify(errorResponse) + '\n');
-          }
-        });
+    // Set environment for MCP server
+    process.env.REPL_HOST = session.host;
+    process.env.REPL_PORT = session.port;
+    process.env.REPL_SESSION_ID = session.sessionId;
 
-        this.stdin.resume();
-      }
-
-      async handleMessage(message) {
-        switch (message.method) {
-          case 'initialize':
-            return {
-              jsonrpc: '2.0',
-              id: message.id,
-              result: {
-                protocolVersion: '2024-11-05',
-                capabilities: {
-                  tools: {}
-                },
-                serverInfo: {
-                  name: 'browser-repl-mcp',
-                  version: '1.0.0'
-                }
-              }
-            };
-
-          case 'tools/list':
-            const tools = await mcpServer.listTools();
-            return {
-              jsonrpc: '2.0',
-              id: message.id,
-              result: tools
-            };
-
-          case 'tools/call':
-            const result = await mcpServer.callTool(message.params.name, message.params.arguments);
-            return {
-              jsonrpc: '2.0',
-              id: message.id,
-              result: result
-            };
-
-          default:
-            return {
-              jsonrpc: '2.0',
-              id: message.id,
-              error: {
-                code: -32601,
-                message: 'Method not found'
-              }
-            };
-        }
-      }
-    };
+    // Import and use the proper MCP server
+    const { StdioServerTransport } = await import('../mcp/mcp-server.js');
 
     const transport = new StdioServerTransport();
-    transport.start();
+    await transport.start();
 
     process.on('SIGINT', async () => {
-      await mcpServer.shutdown();
       process.exit(0);
     });
+  });
+
+program
+  .command('code')
+  .description('Generate browser connection code')
+  .option('--host <host>', 'Remote host (e.g., https://replmirror.247420.xyz)')
+  .option('--port <port>', 'Remote port (default: 443 for https, 80 for http)')
+  .action((options) => {
+    // Check if we already have a session
+    let existingSession = loadSession();
+
+    let sessionData;
+    if (existingSession) {
+      console.log('📁 Found existing session in ~/.replmirror-session');
+      sessionData = existingSession;
+
+      // If remote host provided, update the session
+      if (options.host) {
+        console.log('🔄 Updating session with remote host');
+        sessionData.host = options.host;
+        sessionData.port = options.port || (options.host.startsWith('https') ? '443' : '80');
+        sessionData.lastUpdated = new Date().toISOString();
+
+        if (saveSession(sessionData)) {
+          console.log('💾 Updated session with remote host');
+        }
+      }
+    } else {
+      // Create new session
+      const sessionId = randomBytes(16).toString('hex');
+
+      // Use remote host if provided, otherwise default to localhost
+      let host = options.host || 'localhost';
+      let port = options.port || (host.startsWith('https') ? '443' : '80');
+
+      sessionData = {
+        sessionId,
+        host,
+        port,
+        generated: new Date().toISOString()
+      };
+
+      // Save to hidden file
+      if (saveSession(sessionData)) {
+        console.log('💾 Session saved to ~/.replmirror-session');
+      }
+    }
+
+    const browserCode = getSessionCode();
+
+    console.log('🌐 ReplMirror Browser Connection Code');
+    console.log('═'.repeat(50));
+    console.log(browserCode);
+    console.log('═'.repeat(50));
+    console.log(`📋 Session ID: ${sessionData.sessionId}`);
+    console.log(`🔗 Server: ${sessionData.host}:${sessionData.port}`);
+    console.log(`🕐 Generated: ${sessionData.generated}`);
+    console.log('');
+    console.log('Instructions:');
+    console.log('1. Start WebSocket server: npx browser-repl-websocket@latest server');
+    console.log('2. Copy the code above');
+    console.log('3. Open your browser console');
+    console.log('4. Paste and execute the code');
+    console.log('5. The browser is now ready for MCP commands');
+    console.log('');
+    console.log('💡 Session is automatically saved - MCP server will use it');
+    console.log('🔄 Use the same code in multiple browsers to switch the connection');
   });
 
 program

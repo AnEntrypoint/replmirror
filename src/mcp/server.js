@@ -5,19 +5,36 @@ export class MCPBrowserREPLServer {
   constructor(options = {}) {
     this.host = options.host || 'localhost';
     this.port = options.port || 8080;
-    this.sessionId = options.sessionId || randomBytes(16).toString('hex');
+    // Use provided session ID or generate new one
+    this.sessionId = options.sessionId || process.env.REPL_SESSION_ID || randomBytes(16).toString('hex');
     this.client = new WebSocketREPLClient({
       host: this.host,
       port: this.port,
-      sessionId: this.sessionId
+      sessionId: this.sessionId,
+      role: 'mcp'  // This is an MCP server
     });
     this.connected = false;
     this.connectionPromise = null;
+    this.initialized = false;
+  }
+
+  async initialize() {
+    this.initialized = true;
+    return true;
   }
 
   generateBrowserCode() {
+    // Clean up host URL to remove protocol if present
+    let cleanHost = this.host;
+    if (cleanHost.startsWith('http://')) {
+      cleanHost = cleanHost.substring(7);
+    } else if (cleanHost.startsWith('https://')) {
+      cleanHost = cleanHost.substring(8);
+    }
+
+    const wsProtocol = this.port === 443 ? 'wss' : 'ws';
     return `(function() {
-  const ws = new WebSocket('ws://${this.host}:${this.port}/repl');
+  const ws = new WebSocket('${wsProtocol}://${cleanHost}:${this.port}/repl');
   const sessionId = '${this.sessionId}';
 
   ws.onopen = function() {

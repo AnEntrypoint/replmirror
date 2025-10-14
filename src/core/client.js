@@ -5,6 +5,7 @@ export class WebSocketREPLClient {
     this.host = options.host || 'localhost';
     this.port = options.port || 8080;
     this.sessionId = options.sessionId;
+    this.role = options.role || 'cli';  // Default to 'cli', can be 'mcp'
     this.ws = null;
     this.connected = false;
     this.pendingRequests = new Map();
@@ -19,8 +20,9 @@ export class WebSocketREPLClient {
         this.connected = true;
         this.ws.send(JSON.stringify({
           type: 'register',
-          role: 'cli',
-          sessionId: this.sessionId
+          role: this.role,
+          sessionId: this.sessionId,
+          timestamp: Date.now()
         }));
         console.log(`Connected to browser REPL server (${this.host}:${this.port})`);
         console.log('Type JavaScript code and press Enter to execute.');
