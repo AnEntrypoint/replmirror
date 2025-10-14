@@ -1,6 +1,6 @@
 {
   "name": "browser-repl-websocket",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "WebSocket-based browser REPL with CLI and MCP support",
   "main": "src/server/index.js",
   "bin": {

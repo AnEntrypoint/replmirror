@@ -1,125 +1,159 @@
 # Browser REPL WebSocket
 
-A WebSocket-based browser REPL tool that provides programmatic access to browser sessions via CLI and MCP server.
+A WebSocket-based browser automation tool with seamless MCP (Model Context Protocol) integration for Claude. Execute JavaScript in browsers remotely with zero configuration.
 
-## Features
+## ✨ Features
 
-- WebSocket server for browser REPL connections
-- CLI tool for interactive JavaScript execution
-- MCP server integration for seamless automation
-- Playwright testing support
-- Modular architecture for reusability
+- 🚀 **Zero Configuration**: No environment variables or setup required
+- 🔗 **Automatic Session Management**: Sessions saved automatically in `~/.replmirror-session`
+- 🔄 **Session Switching**: Paste code in multiple browsers to switch connections
+- 🌐 **WebSocket Secure**: Uses WSS for secure browser connections
+- 🤖 **MCP Integration**: Works seamlessly with Claude via browser-repl MCP tool
+- 📱 **Multi-Browser Support**: Multiple browsers can connect to the same session
 
-## Installation
+## 🚀 Quick Start
 
-```bash
-npm install
-```
-
-## Usage
-
-### 1. Start the WebSocket Server
+### 1. Generate Browser Connection Code
 
 ```bash
-npm start
-# or
-browser-repl-server
+npx browser-repl-websocket@latest code
 ```
 
-The server will output connection codes for both browser and CLI.
+This will:
+- Generate a unique session ID
+- Save the session automatically to `~/.replmirror-session`
+- Display browser connection code
 
 ### 2. Connect Browser
 
-Paste the provided JavaScript code into your browser's developer console.
+Copy the generated JavaScript code and paste it into your browser's developer console.
 
-### 3. Connect CLI
+### 3. Use with Claude
 
-Use the provided CLI command:
+The MCP server automatically detects your session and connects to the browser. Simply ask Claude to use the browser-repl tool to execute JavaScript!
 
+## 📋 Available Commands
+
+### Generate Browser Code
 ```bash
-browser-repl --session YOUR_SESSION_ID --host localhost --port 8080
+npx browser-repl-websocket@latest code
+npx browser-repl-websocket@latest code --host https://replmirror.247420.xyz
+```
+- Creates a new browser session (defaults to localhost:8080)
+- `--host` option sets remote host (e.g., `https://replmirror.247420.xyz`)
+- `--port` option sets custom port (auto-detected from host protocol)
+- Saves session to hidden file for persistence
+- Outputs connection code for browser
+
+### Start MCP Server
+```bash
+npx browser-repl-websocket@latest mcp
+```
+- Automatically loads saved session
+- Starts MCP server for Claude integration
+- **No arguments required** - everything is automatic!
+
+### CLI Connection (Advanced)
+```bash
+npx browser-repl-websocket@latest connect --session <session-id>
 ```
 
-### 4. MCP Server Configuration
+## 🔧 Claude MCP Configuration
 
-Add to your Claude MCP configuration:
+Add this to your `.mcp.json` file:
 
 ```json
 {
   "mcpServers": {
     "browser-repl": {
-      "command": "node",
-      "args": ["src/mcp/mcp-server.js"],
-      "env": {
-        "REPL_HOST": "localhost",
-        "REPL_PORT": "8080",
-        "REPL_SESSION": "YOUR_SESSION_ID"
-      }
+      "command": "npx",
+      "args": ["-y", "browser-repl-websocket@latest", "mcp"]
     }
   }
 }
 ```
 
-## Architecture
+Or add via CLI:
+```bash
+claude mcp add --scope project browser-repl -- npx -y browser-repl-websocket@latest mcp
+```
 
-- `src/core/websocket.js` - Core WebSocket server implementation
-- `src/core/client.js` - WebSocket client for CLI connections
-- `src/server/index.js` - Standalone WebSocket server
-- `src/cli/index.js` - Interactive CLI client
-- `src/mcp/server.js` - MCP server wrapper
+## 🎯 Usage Examples
+
+### Basic JavaScript Execution
+```javascript
+// Ask Claude to execute this:
+document.title = "Hello from Claude!";
+window.location.href
+```
+
+### Get Page Information
+```javascript
+return {
+  title: document.title,
+  url: window.location.href,
+  userAgent: navigator.userAgent
+};
+```
+
+### DOM Manipulation
+```javascript
+document.body.style.backgroundColor = 'lightblue';
+document.querySelectorAll('a').forEach(link => console.log(link.href));
+```
+
+## 🔄 Session Management
+
+- **Automatic Persistence**: Sessions saved to `~/.replmirror-session`
+- **Remote Host Support**: Use `--host https://example.com` to connect to remote WebSocket servers
+- **Session Switching**: Latest browser connection gets priority
+- **Multi-MCP Support**: Multiple MCP servers can connect to same session
+- **Isolation**: Different sessions don't interfere with each other
+
+## 🌐 Remote Host Configuration
+
+### Set Remote Host for New Session
+```bash
+npx browser-repl-websocket@latest code --host https://your-server.com
+```
+
+### Update Existing Session to Remote Host
+```bash
+npx browser-repl-websocket@latest code --host https://replmirror.247420.xyz
+```
+
+### Custom Port Configuration
+```bash
+npx browser-repl-websocket@latest code --host https://your-server.com --port 8080
+```
+
+The remote host configuration is automatically saved and will be used by both the browser connection code and the MCP server.
+
+## 🏗️ Architecture
+
+- `src/core/websocket.js` - WebSocket server with session management
+- `src/core/client.js` - WebSocket client with role-based connections
+- `src/mcp/server.js` - MCP browser automation server
 - `src/mcp/mcp-server.js` - MCP protocol implementation
+- `src/utils/session.js` - Session persistence and management
 
-## Testing
+## 🛠️ Development
 
 ```bash
+# Install dependencies
+npm install
+
+# Run locally
+npm start
+
+# Run tests
 npm test
+
+# Publish new version
+npm version patch
+npm publish
 ```
 
-## API
-
-### WebSocketREPLServer
-
-```javascript
-import { WebSocketREPLServer } from './src/core/websocket.js';
-
-const server = new WebSocketREPLServer({
-  port: 8080,
-  host: '0.0.0.0'
-});
-
-server.start();
-```
-
-### WebSocketREPLClient
-
-```javascript
-import { WebSocketREPLClient } from './src/core/client.js';
-
-const client = new WebSocketREPLClient({
-  host: 'localhost',
-  port: 8080,
-  sessionId: 'your-session-id'
-});
-
-await client.connect();
-client.execute('document.title');
-```
-
-### MCPBrowserREPLServer
-
-```javascript
-import { MCPBrowserREPLServer } from './src/mcp/server.js';
-
-const mcpServer = new MCPBrowserREPLServer({
-  host: 'localhost',
-  port: 8080,
-  sessionId: 'your-session-id'
-});
-
-await mcpServer.initialize();
-const result = await mcpServer.executeJavaScript('1 + 1');
-```
-
-## License
+## 📄 License
 
 MIT
