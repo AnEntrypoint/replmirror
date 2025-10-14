@@ -14,7 +14,29 @@ export class WebSocketREPLClient {
 
   connect() {
     return new Promise((resolve, reject) => {
-      this.ws = new WebSocket(`ws://${this.host}:${this.port}/repl`);
+      // Clean up host URL to remove protocol if present
+      let cleanHost = this.host;
+      if (cleanHost.startsWith('http://')) {
+        cleanHost = cleanHost.substring(7);
+      } else if (cleanHost.startsWith('https://')) {
+        cleanHost = cleanHost.substring(8);
+      }
+
+      // Handle case where host already includes port
+      let portToUse = this.port;
+      if (cleanHost.includes(':')) {
+        const [hostOnly, hostPort] = cleanHost.split(':');
+        if (hostPort && hostPort !== this.port.toString()) {
+          cleanHost = hostOnly;
+          portToUse = parseInt(hostPort);
+        } else {
+          cleanHost = hostOnly;
+        }
+      }
+
+      // Use appropriate WebSocket protocol
+      const wsProtocol = portToUse === 443 ? 'wss' : 'ws';
+      this.ws = new WebSocket(`${wsProtocol}://${cleanHost}:${portToUse}/repl`);
 
       this.ws.on('open', () => {
         this.connected = true;
