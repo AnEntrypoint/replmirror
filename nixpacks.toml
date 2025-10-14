@@ -3,9 +3,7 @@ nixPkgs = ["nodejs_20"]
 
 [phases.build]
 nixPkgs = ["nodejs_20"]
-
-[phases.start]
-cmd = "npm start"
+cmd = "echo 'Buildless setup - skipping build step'"
 
 [start]
-cmd = "node src/cli/index.js server --port 3000 --host 0.0.0.0"
+cmd = "node src/cli/index.js server --port $PORT --host 0.0.0.0"
