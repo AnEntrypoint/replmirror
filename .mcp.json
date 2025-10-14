@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "browser-repl": {
+      "command": "npx",
+      "args": ["-y", "browser-repl-websocket@latest", "mcp"]
+    }
+  }
+}
